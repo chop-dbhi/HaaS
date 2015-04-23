@@ -10,6 +10,17 @@
             border-radius: 10px;">
 
   <h1 style="align:center; font-family:Lucida Sans Unicode; color:#333333">Redcap to Harvest</h1>
+  {% if missing_fields %}
+     <p style="color:red">
+       Please make sure you have provided 
+       a data file and data dictionary.
+     </p>
+  {% elif wrong_filetype %}
+     <p style="color:red">
+       Both files must have the file 
+       extension, '.csv'.
+     </p>
+  {% endif %}
   <br>
   <form action="" method="post" enctype="multipart/form-data" style="width:340px">
     Data File: <input type="file" name="datafile"><br/>

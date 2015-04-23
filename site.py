@@ -23,31 +23,36 @@ def upload_file():
         metadatafile = request.files['metadatafile']
         datafile = request.files['datafile']
         
-        if metadatafile and metadatafile.filename.endswith('.csv') \
-           and datafile and datafile.filename.endswith('.csv'):
-            print "Saving files..."
+        if not metadatafile or not datafile:
+            render_template('index.html', missing_fields=True)
+
+        if not metadatafile.filename.endswith('.csv') 
+           or not datafile.filename.endswith('.csv'):
+            render_template('index.html', wrong_filetype=True)
+
+        print "Saving files..."
+        app.config['UPLOAD_FOLDER'] = 'tmp/'+str(random.randint(10000,99999))+'/'
+        while os.path.exists(app.config['UPLOAD_FOLDER']):
             app.config['UPLOAD_FOLDER'] = 'tmp/'+str(random.randint(10000,99999))+'/'
-            while os.path.exists(app.config['UPLOAD_FOLDER']):
-                app.config['UPLOAD_FOLDER'] = 'tmp/'+str(random.randint(10000,99999))+'/'
-            
-            os.mkdir(app.config['UPLOAD_FOLDER'])
-            metadatafile.save(
-                os.path.join(
-                    app.config['UPLOAD_FOLDER'],
-                    metadatafile.filename
-                )
+           
+        os.mkdir(app.config['UPLOAD_FOLDER'])
+        metadatafile.save(
+            os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                metadatafile.filename
             )
-            datafile.save(
-                os.path.join(
-                    app.config['UPLOAD_FOLDER'],
-                    datafile.filename
-                )
+        )
+        datafile.save(
+            os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                datafile.filename
             )
-            return redirect(url_for(
-                                'uploaded_file', 
-                                datafilename = datafile.filename, 
-                                metadatafilename = metadatafile.filename
-                            ))
+        )
+        return redirect(url_for(
+                            'uploaded_file', 
+                            datafilename = datafile.filename, 
+                            metadatafilename = metadatafile.filename
+                        ))
 
     # If method is not 'POST' (i.e., the user has not uploaded files yet)
     #  or if files are not accepted, load the form.
