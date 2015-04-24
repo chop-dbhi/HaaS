@@ -7,6 +7,7 @@ ADD templates templates/
 RUN mkdir tmp/
 ENTRYPOINT ["python", "site.py"]
 
-ENV DOCKERHOST = "192.168.59.103"
+ENV DOCKER_IP "0.0.0.0"
 
 EXPOSE 8000
+

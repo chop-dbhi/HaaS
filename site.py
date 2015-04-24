@@ -20,40 +20,42 @@ def upload_file():
     if request.method == 'GET':
         return render_template('index.html')
 
-    if request.method == 'POST':
-        metadatafile = request.files['metadatafile']
-        datafile = request.files['datafile']
-        
-        if not metadatafile or not datafile:
-            render_template('index.html', missing_fields=True)
+    metadatafile = request.files['metadatafile']
+    datafile = request.files['datafile']
+      
+    if not metadatafile or not datafile:
+        return render_template('index.html', missing_fields=True)
 
-        if not metadatafile.filename.endswith('.csv') \
-          or not datafile.filename.endswith('.csv'):
-            render_template('index.html', wrong_filetype=True)
+    if not metadatafile.filename.endswith('.csv') \
+       or not datafile.filename.endswith('.csv'):
+        return render_template('index.html', wrong_filetype=True)
 
-        print "Saving files..."
-        uniqueid = str(uuid4())
-        folder = os.path.join(TEMP_DIR, uniqueid)
-        os.mkdir(folder)
+    print "Saving files..."
+    uniqueid = str(uuid4())
+    folder = os.path.join(TEMP_DIR, uniqueid)
+    os.mkdir(folder)
 
-        metadatafile.save(os.path.join(folder, METADATA_FILE))
-        datafile.save(os.path.join(folder, DATA_FILE))
+    metadatafile.save(os.path.join(folder, METADATA_FILE))
+    datafile.save(os.path.join(folder, DATA_FILE))
 
-        return redirect(url_for('container', uuid=uniqueid))
+    return redirect(url_for('container', uuid=uniqueid))
 
 
 # Generate the Docker container from the uploaded files, 
 #  and redirect to the new Harvest instance.
 @app.route('/containers/<uuid>')
 def container(uuid):
-    folder = os.path.join(TEMP_DIR, uuid)
+    folder = os.path.abspath(os.path.join(TEMP_DIR, uuid))
     cidf = os.path.join(folder, 'docker.cid')
-    containerid = ''
+
     if not os.path.exists(cidf):
         print 'Files accepted. Generating Docker Container...' 
         containerid = subprocess.check_output([
-                          'docker', 'run', '-d', '-P',
-                          '-v', (os.path.abspath(folder)+':/input'),
+                          'docker', 
+                          'run', 
+                          '-d', 
+                          '-P',
+                          '-v', folder + ':/input',
                           'dbhi/redcap-harvest'
                       ])
         containerid = containerid.strip()  # Get short container id for use in inspect
@@ -68,14 +70,15 @@ def container(uuid):
                                          )
     portnumber = portnumber.split(':')[1].strip()
    
+    internal_addr = ('http://' + os.environ['DOCKER_IP'] + ':' + portnumber)
+    redirect_addr = ('http://dockerhost:' + portnumber)
+
     print 'Waiting for harvest to load...' 
-    harvestIP = 'http://' + os.environ['DOCKERHOST'] + ':' + portnumber
-   
     for i in range(30):
         try:
-            urllib.urlopen(harvestIP).getcode()
+            urllib.urlopen(internal_addr).getcode()
             print 'Done.'
-            return redirect(harvestIP) 
+            return redirect(redirect_addr) 
         except StandardError:
             time.sleep(1)
     return 'There was a problem generating the Harvest project. \
@@ -83,3 +86,4 @@ def container(uuid):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
+
