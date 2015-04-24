@@ -53,7 +53,7 @@ def container(uuid):
         print 'Files accepted. Generating Docker Container...' 
         containerid = subprocess.check_output([
                           'docker', 'run', '-d', '-P',
-                          '-v', (folder+':/input'),
+                          '-v', (os.path.abspath(folder)+':/input'),
                           'dbhi/redcap-harvest'
                       ])
         containerid = containerid.strip()  # Get short container id for use in inspect
@@ -63,13 +63,13 @@ def container(uuid):
         with open(cidf) as f:
             containerid = f.read()
 
-    portnumber = json.loads(subprocess.check_output(
+    portnumber = subprocess.check_output(
                                               ['docker','port', containerid, '8000']
-                                         ))
+                                         )
+    portnumber = portnumber.split(':')[1].strip()
    
     print 'Waiting for harvest to load...' 
-    harvestIP = 'http://' + subprocess.check_output(['boot2docker', 'ip']).strip()\
-                      + portnumber
+    harvestIP = 'http://' + os.environ['DOCKERHOST'] + ':' + portnumber
    
     for i in range(30):
         try:
