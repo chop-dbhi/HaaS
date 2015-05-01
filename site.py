@@ -10,6 +10,8 @@ from flask import Flask, render_template, request, redirect, \
 
 app = Flask(__name__, static_url_path='')
 
+DOCKER_IP = os.environ['DOCKER_IP']
+DEBUG = os.environ.get('DEBUG')
 CONTAINERS_DIR = 'containers'
 METADATA_FILE = 'metadata.csv'
 DATA_FILE = 'data.csv'
@@ -196,7 +198,7 @@ def container_addr(cid):
 
     port = ports[0]['HostPort']
 
-    return 'http://{}:{}'.format(os.environ['DOCKER_IP'], port)
+    return 'http://{}:{}'.format(DOCKER_IP, port)
 
 
 def poll_container(addr, timeout=DEFAULT_TIMEOUT):
@@ -212,4 +214,9 @@ def poll_container(addr, timeout=DEFAULT_TIMEOUT):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, threaded=True)
+    debug = bool(DEBUG)
+
+    app.run(host='0.0.0.0',
+            port=8000,
+            threaded=True,
+            debug=debug)
