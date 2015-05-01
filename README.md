@@ -1,51 +1,53 @@
 # Harvest as a Service
 
-A Dockerized web form used to convert REDCap datafiles into a Harvest project, and deploy a server to provide access to it.
+A service for creating and deploying Harvest applications from REDCap projects with a simple web form.
 
-Installation and Setup
-----------------------
+The service presents a web form for uploading a REDCap data dictionary and data file. Upon upload, the files will be used to generate a Harvest application that is modeled after the REDCap data. Once the application is ready it will be deployed on the host at a specific endpoint and the user will be redirected to the Harvest interface.
 
-This tool runs using Docker. Install it if you don't have it:
+## Setup
 
-[Install Docker](http://docs.docker.com/installation/) 
-
+The service requires [Docker](http://docs.docker.com) for building and deploying Harvest application containers. Ensure Docker is [installed](http://docs.docker.com/installation/) and working correctly.
 
 
-Once you have Docker, execute the following command:
+This service builds and runs containers use the `dbhi/redcap-harvest` image. It is recommended to pull the image before launchingn the service, so the first user does not need to wait for the image to download.
 
-For Non-Mac:
 ```bash
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /usr/src/app/tmp:/usr/src/app/tmp -v $(which docker):/usr/bin/docker -e DOCKER_HOST=$($HOSTNAME | ip route|awk '/default/ { print  $3}') --add-host dockerhost:`ip route|awk '/default/ { print  $3}'` -p 8000:8000 swanijam/flask-harvest
+docker pull dbhi/redcap-harvest
 ```
 
-For Mac:
+## Run
+
+This service runs in a container itself and requires access to the Docker binary and socket on the host so Harvest containers built and run. In addition, the host IP address must be added as a host to this service to make it able to check if the built container is successfully handling requests.
+
+OS X users are assumed to be using [boot2docker](https://docs.docker.com/installation/mac/) which require slightly different arguments.
+
+Set the `DOCKER_IP` (or set it manually).
+
 ```bash
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /usr/src/app/tmp:/usr/src/app/tmp -v $(which docker):/usr/bin/docker -e DOCKER_HOST=$(boot2docker ip) --add-host dockerhost:$(boot2docker ip) -p 8000:8000 swanijam/flask-harvest
+# For boot2docker users:
+if hash boot2docker 2>/dev/null; then
+    DOCKER_IP=$(boot2docker ip)
+else
+    DOCKER_IP=$($HOSTNAME | ip route|awk '/default/ { print  $3}')
+fi
 ```
 
-
-- -it causes it to be run as an interactive terminal on the command line.
-- --rm causes it to be removed when the flask container is stopped.
-- -v  /var/run/docker.sock:/var/run/docker.sock mounts the hosts' docker socket on the 
-      flask container, allowing the flask container to run new docker containers
-      on the host.
-- -v $(which docker):/usr/bin/docker mounts the docker binary in the flask container
-          is also necessary for the flask container to run new docker containers. 
-- -v /usr/src/app/tmp:/usr/src/app/tmp mounts the host's /tmp folder to the flask 
-          container's /tmp folder, so that when the containers flask runs write to /tmp,           those changes are reflected on the host filesystem.
-- -e DOCKERHOST provides the flask container with the ip of the dockerhost so that it can          redirect 
-- --add-host dockerhost creates a new host named dockerhost that is accessible by the
-         flask container.
-- -p 8000:8000 maps the containers port 8000 to the host's port 8000 so that the containe         r's server can be accessed from the host. change the first '8000' if you wanted          to use a different host port.
-- swanijam/flask-harvest is the name of the docker image that runs the Flask container.
-
-Now find the ip of your docker host:
-For Non-Mac:
 ```bash
-ip route|awk '/default/ { print  $3}'
+docker run \
+    --add-host dockerhost:$DOCKER_IP \
+    -e DOCKER_IP=$DOCKER_IP \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v $(which docker):/usr/bin/docker \
+    -v /usr/src/app/containers:/usr/src/app/containers \
+    -p 8000:8000 \
+    dbhi/HaaS
 ```
-For Mac:
-```bash
-boot2docker ip
-```
-Then visit <dockerhost>:8000 to view the form.  
+
+Arguments:
+
+- `--add-host dockerhost:$DOCKER_IP` is required so this container can make requests to the newly built container (from within the container).
+- THe `DOCKER_IP` environment variable is used for the redirect to the newly running app. This IP or hostname must be accessible by the end user.
+- The `/var/run/docker.sock:/var/run/docker.sock` volume is required the host's Docker socket in this container which make it possible to build and run new containers.
+- The `$(which docker):/usr/bin/docker` volume is required and makes the host's Docker binary available in the container to access the client commands.
+- The `/usr/src/app/tmp:/usr/src/app/tmp` volume is required so files uploaded for the built containers are accessible by the container on the host system itself, *not* in this service container.
+- Port 8000 is exposed by this container.

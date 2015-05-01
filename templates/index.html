@@ -1,33 +1,68 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<body>
+    <head>
+        <link href="bootstrap.min.css" rel="stylesheet">
+        <style>
+            input[type=file] {
+                padding: 5px;
+                background-color: #eee;
+                vertical-align: top;
+            }
+        </style>
+    </head>
 
-<div style="background-color:#E6E6E6; 
-            width:340px; 
-            margin-left:auto; 
-            margin-right:auto;
-            border: 20px solid #E6E6E6;
-            border-radius: 10px;">
+    <body>
+        <div class="container">
+            <div class="col-md-6 col-md-offset-3">
+                <div class="page-header">
+                    <h2>REDCap to Harvest</h2>
 
-  <h1 style="align:center; font-family:Lucida Sans Unicode; color:#333333">Redcap to Harvest</h1>
-  {% if missing_fields %}
-     <p style="color:red">
-       Please make sure you have provided 
-       a data file and data dictionary.
-     </p>
-  {% elif wrong_filetype %}
-     <p style="color:red">
-       Both files must have the file 
-       extension, '.csv'.
-     </p>
-  {% endif %}
-  <br>
-  <form action="" method="post" enctype="multipart/form-data" style="width:340px">
-    Data File: <input type="file" name="datafile"><br/>
-    Data Dictionary: <input type="file" name="metadatafile"><br/>
-    <input type="submit" value="Submit" align="left">
-  </form>
-  <br>
-</div>
-</body>
+                    <p class="lead">Preview and interact with a live Harvest application built directly from your REDCap project!</p>
+                </div>
+
+                {% if missing_fields %}
+                    <div class="alert alert-danger">
+                        <strong>Files required.</strong>
+                        Please make sure you have provided a data file and data dictionary.
+                    </div>
+                {% elif wrong_filetype %}
+                    <div class="alert alert-danger">
+                        <strong>CSV required.</strong>
+                        Both files must have the file extension, <code>.csv</code>.
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    <h4>1. REDCap Data Dictionary</h4>
+
+                    <div class="form-group">
+                        <p>Attach a data dictionary downloaded from your REDCap project page.</p>
+
+                        <input type="file" name="metadatafile">
+                    </div>
+
+                    <h4>2. REDCap Data File</h4>
+
+                    <div class="form-group">
+                        <p>Attach an data file exported from your REDCap project page.</p>
+
+                        <div class="alert alert-warning">
+                            <strong>Note.</strong>
+
+                            This is a public resource. Ensure the exported data does not contain PHI.
+                        </div>
+
+                        <input type="file" name="datafile">
+                    </div>
+
+
+                    <h4>3. Launch!</h4>
+
+                    <p class="text-muted">Depending on the size of your data, this may take up to 30 seconds to build.</p>
+
+                    <input class="btn btn-primary" type="submit" value="Launch">
+                </form>
+            </div>
+        </div>
+    </body>
 </html>
