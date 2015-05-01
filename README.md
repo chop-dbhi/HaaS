@@ -24,7 +24,6 @@ OS X users are assumed to be using [boot2docker](https://docs.docker.com/install
 Set the `DOCKER_IP` (or set it manually).
 
 ```bash
-# For boot2docker users:
 if hash boot2docker 2>/dev/null; then
     DOCKER_IP=$(boot2docker ip)
 else
@@ -40,7 +39,7 @@ docker run \
     -v $(which docker):/usr/bin/docker \
     -v /usr/src/app/containers:/usr/src/app/containers \
     -p 8000:8000 \
-    dbhi/HaaS
+    dbhi/haas
 ```
 
 Arguments:
