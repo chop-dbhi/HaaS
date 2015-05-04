@@ -12,7 +12,9 @@ RUN mkdir containers/
 
 ENTRYPOINT ["python", "site.py"]
 
-ENV DOCKER_IP "0.0.0.0"
+ENV DOCKER_SOCKET unix://var/run/docker.sock
+ENV DOCKER_HOSTNAME localhost
+
+VOLUME /usr/src/app/containers
 
 EXPOSE 8000
-

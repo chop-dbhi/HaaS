@@ -1,25 +1,38 @@
 import os
 import time
-import urllib
 from uuid import uuid4
 from datetime import datetime
 from docker import Client
+from docker.errors import APIError
 from flask import Flask, render_template, request, redirect, \
     send_from_directory
 
 
 app = Flask(__name__, static_url_path='')
 
-DOCKER_IP = os.environ['DOCKER_IP']
-DEBUG = os.environ.get('DEBUG')
-CONTAINERS_DIR = 'containers'
+# Default timeout for checking if a container is ready.
+DEFAULT_TIMEOUT = 30
+
+# Directory on the host that new containers will mount.
+HOST_CONTAINER_DIR = os.environ['CONTAINER_DIR']
+
+# Name of the local directory containing the container
+# directories.
+CONTAINER_DIR = 'containers'
+
+# Standard names for the uploaded REDCap metadata and data files.
 METADATA_FILE = 'metadata.csv'
 DATA_FILE = 'data.csv'
+
+# Name of the
 CID_FILE = 'docker.cid'
-DEFAULT_TIMEOUT = 60
 
+# Docker socket and hostname for public URLs.
+DOCKER_SOCKET = os.environ.get('DOCKER_SOCKET')
+DOCKER_HOSTNAME = os.environ.get('DOCKER_HOSTNAME')
 
-docker = Client(base_url='unix://var/run/docker.sock')
+# Initialize the docker client
+docker = Client(base_url=DOCKER_SOCKET)
 
 
 @app.route('/static/<path>', methods=['GET'])
@@ -45,16 +58,16 @@ def upload():
         return render_template('index.html', wrong_filetype=True)
 
     uuid = str(uuid4())
-    folder = os.path.join(CONTAINERS_DIR, uuid)
+    folder = os.path.join(CONTAINER_DIR, uuid)
     os.mkdir(folder)
 
     metadatafile.save(os.path.join(folder, METADATA_FILE))
     datafile.save(os.path.join(folder, DATA_FILE))
 
-    addr = launch_container(uuid)
+    url = launch_container(uuid)
 
-    if addr:
-        return redirect(addr)
+    if url:
+        return redirect(url)
 
     return 'There was a problem running the container', 500
 
@@ -63,8 +76,8 @@ def upload():
 def list_containers():
     items = []
 
-    for name in os.listdir(CONTAINERS_DIR):
-        path = os.path.join(CONTAINERS_DIR, name)
+    for name in os.listdir(CONTAINER_DIR):
+        path = os.path.join(CONTAINER_DIR, name)
 
         if not os.path.isdir(path):
             continue
@@ -79,19 +92,23 @@ def list_containers():
         status = 'Starting'
 
         if cid:
-            url = container_addr(cid)
-
+            port = container_port(cid)
             info = container_info(cid)
 
-            # Ignore nanosecond resolution.
-            created = info['Created'].split('.')[0]
+            if info:
+                # Ignore nanosecond resolution.
+                created = info['Created'].split('.')[0]
 
-            if poll_container(url, timeout=1):
-                status = 'Running'
-                created_time = datetime.strptime(created, '%Y-%m-%dT%H:%M:%S')
-                uptime = datetime.now() - created_time
+                if container_ready(cid, timeout=1):
+                    url = container_redirect(port)
+                    status = 'Running'
+                    created_time = datetime.strptime(created,
+                                                     '%Y-%m-%dT%H:%M:%S')
+                    uptime = datetime.now() - created_time
+                else:
+                    status = 'Building'
             else:
-                status = 'Building'
+                status = 'Missing'
 
         items.append({
             'url': url,
@@ -107,29 +124,29 @@ def list_containers():
 
 @app.route('/containers/<uuid>')
 def container(uuid):
-    addr = launch_container(uuid)
+    url = launch_container(uuid)
 
-    if addr:
-        return redirect(addr)
+    if url:
+        return redirect(url)
 
     return 'There was a problem running the container', 500
 
 
 def launch_container(uuid):
-    "Launches a container returning the address."
+    "Launches a container returning the public URL."
     cid = container_id(uuid)
 
     if not cid:
         cid = run_container(uuid)
 
-    addr = container_addr(cid)
+    port = container_port(cid)
 
-    if poll_container(addr):
-        return addr
+    if container_ready(cid):
+        return container_redirect(port)
 
 
 def container_id(uuid):
-    folder = os.path.join(CONTAINERS_DIR, uuid)
+    folder = os.path.join(CONTAINER_DIR, uuid)
     cidf = os.path.join(folder, CID_FILE)
 
     if os.path.exists(cidf):
@@ -139,7 +156,7 @@ def container_id(uuid):
 
 def run_container(uuid):
     "Runs a container given a UUID."
-    folder = os.path.join(CONTAINERS_DIR, uuid)
+    folder = os.path.join(CONTAINER_DIR, uuid)
     cidf = os.path.join(folder, CID_FILE)
 
     # Create config
@@ -153,7 +170,7 @@ def run_container(uuid):
         },
         'volumes': [
             '/input',
-        ]
+        ],
     }
 
     container = docker.create_container(**config)
@@ -169,7 +186,7 @@ def run_container(uuid):
             8000: None,
         },
         'binds': {
-            os.path.abspath(folder): {
+            os.path.join(HOST_CONTAINER_DIR, uuid): {
                 'bind': '/input',
                 'ro': False,
             }
@@ -186,35 +203,54 @@ def run_container(uuid):
 
 
 def container_info(cid):
-    return docker.inspect_container(cid)
+    "Returns info about the container."
+    try:
+        return docker.inspect_container(cid)
+    except APIError:
+        pass
 
 
-def container_addr(cid):
-    "Returns the public address given the container ID."
-    ports = docker.port(cid, 8000)
+def container_port(cid):
+    "Returns the port of the container."
+    try:
+        ports = docker.port(cid, 8000)
+    except APIError:
+        return
 
     if not ports:
         return
 
-    port = ports[0]['HostPort']
-
-    return 'http://{}:{}'.format(DOCKER_IP, port)
+    return ports[0]['HostPort']
 
 
-def poll_container(addr, timeout=DEFAULT_TIMEOUT):
-    "Polls the address until it returns a successful response code."
+def container_redirect(port):
+    "Returns the public address given the container ID."
+    return 'http://{}:{}'.format(DOCKER_HOSTNAME, port)
+
+
+def container_ready(cid, timeout=DEFAULT_TIMEOUT):
+    "Returns true if the container is deemed ready for end user use."
+
+    # Lightweight cURL command to test the status code of the
+    # running container.
+    cmd = ['curl', '-s', '-o', '/dev/null', '-I',
+           '-w', '%{http_code}', 'localhost:8000']
+
+    exec_id = docker.exec_create(cid, cmd=cmd)['Id']
+
     for _ in range(timeout):
-        try:
-            urllib.urlopen(addr).getcode()
+        resp = docker.exec_start(exec_id)
+
+        if resp == '200':
             return True
-        except StandardError:
-            time.sleep(1)
+
+        time.sleep(0.5)
 
     return False
 
 
 if __name__ == '__main__':
-    debug = bool(DEBUG)
+    debug = bool(os.environ.get('DEBUG'))
 
     app.run(host='0.0.0.0',
             port=8000,
