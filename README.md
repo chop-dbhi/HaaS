@@ -54,5 +54,3 @@ Arguments:
 - The `/var/run/docker.sock:/var/run/docker.sock` volume is required the host's Docker socket in this container which make it possible to build and run new containers.
 - The `$CONTAINER_DIR:/usr/src/app/containers` volume is required so files uploaded for the built containers are accessible by the container on the host system itself, *not* in this service container.
 - Port 8000 is exposed by this container.
-
-    docker run  --rm -it -e DOCKER_HOSTNAME=resrhtiuws04.research.chop.edu  -v /var/run/docker.sock:/var/run/docker.sock     -v /usr/bin/docker:/usr/bin/docker     -v /export/data_01/docker/haas/containers:/usr/src/app/containers   -e CONTAINER_DIR=/export/data_01/docker/haas/containers  -p 49000:8000   -e DEBUG=1
