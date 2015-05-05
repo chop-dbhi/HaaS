@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, redirect, \
 app = Flask(__name__, static_url_path='')
 
 # Default timeout for checking if a container is ready.
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 120
 
 # Directory on the host that new containers will mount.
 HOST_CONTAINER_DIR = os.environ['CONTAINER_DIR']
