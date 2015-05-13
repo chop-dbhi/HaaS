@@ -10,7 +10,6 @@
                 <div class="page-header">
                     <h2>Containers</h2>
                 </div>
-
                 <table class="table table-condensed table-striped">
                     <thead>
                         <tr>
@@ -19,9 +18,10 @@
                             <th>Container ID</th>
                             <th>Created</th>
                             <th>Uptime</th>
+			    <th>Stop/Start</th>
+			    <th>Remove</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {% for c in containers %}
                             <tr>
@@ -30,6 +30,36 @@
                                 <td>{{ c.cid }}</td>
                                 <td>{{ c.created }}</td>
                                 <td>{{ c.uptime }}</td>
+				{% if c.status == 'Running' %}
+				    <td>
+			                <form action="containers/{{ c.cid }}/stop"
+					      method="POST">
+			                    <a onclick="this.parentNode.submit()"
+				               href="#">
+				                Stop
+				            </a>
+				        </form>
+				    </td>
+				{% else %}
+				    <td>
+			                <form action="containers/{{ c.cid }}/start"
+					      method="POST">
+			                    <a onclick="this.parentNode.submit()"
+				               href="#">
+				                Start
+				            </a>
+				        </form>
+				    </td>
+				{% endif %}
+				    <td>
+			                <form action="containers/{{ c.cid }}/remove"
+					      method="POST">
+			                    <a onclick="this.parentNode.submit()"
+				               href="#">
+				                Remove
+				            </a>
+				        </form>
+				    </td>
                             </tr>
                         {% endfor %}
                     </tbody>
