@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 from uuid import uuid4
 from datetime import datetime
@@ -96,17 +97,20 @@ def list_containers():
             info = container_info(cid)
 
             if info:
-                # Ignore nanosecond resolution.
-                created = info['Created'].split('.')[0]
+                if info['State']['Running']:
+                    # Ignore nanosecond resolution.
+                    created = info['Created'].split('.')[0]
 
-                if container_ready(cid, timeout=1):
-                    url = container_redirect(port)
-                    status = 'Running'
-                    created_time = datetime.strptime(created,
-                                                     '%Y-%m-%dT%H:%M:%S')
-                    uptime = datetime.now() - created_time
+                    if container_ready(cid, timeout=1):
+                        url = container_redirect(port)
+                        status = 'Running'
+                        created_time = datetime.strptime(created,
+                                                         '%Y-%m-%dT%H:%M:%S')
+                        uptime = datetime.now() - created_time
+                    else:
+                        status = 'Building'
                 else:
-                    status = 'Building'
+                    status = 'Not Running'
             else:
                 status = 'Missing'
 
@@ -120,6 +124,29 @@ def list_containers():
         })
 
     return render_template('list.html', containers=items)
+
+
+@app.route('/containers/<cid>/remove', methods=['POST'])
+def remove(cid):
+    folder_name = (container_info(cid))['Name']
+    shutil.rmtree(os.path.join(CONTAINER_DIR , (folder_name.split('/'))[1]))
+    docker.stop(cid)
+    docker.remove_container(cid)
+    return redirect('/containers')
+
+
+@app.route('/containers/<cid>/stop', methods=['POST'])
+def stop(cid):
+    docker.stop(cid)
+    return redirect('/containers')
+
+
+@app.route('/containers/<cid>/start', methods=['POST'])
+def start(cid):
+    docker.start(cid)
+    while not container_ready(cid, timeout=1):
+        time.sleep(0.5)
+    return redirect('/containers')
 
 
 @app.route('/containers/<uuid>')
