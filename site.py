@@ -275,6 +275,11 @@ def container_ready(cid, timeout=DEFAULT_TIMEOUT):
 
     return False
 
+@app.route('/containers/<cid>/logs')
+def logs(cid):
+    stdout = docker.logs(container=cid, stdout=True, stderr=False)
+    stderr = docker.logs(container=cid, stderr=True, stdout=False)
+    return render_template('logs.html', cid=cid, out=stdout, err=stderr)
 
 if __name__ == '__main__':
     debug = bool(os.environ.get('DEBUG'))

@@ -20,6 +20,7 @@
                             <th>Uptime</th>
 			    <th>Stop/Start</th>
 			    <th>Remove</th>
+			    <th>Logs</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -59,6 +60,11 @@
 				                Remove
 				            </a>
 				        </form>
+				    </td>
+				    <td>
+				        <a href="containers/{{ c.cid }}/logs">
+				            Logs
+				        </a>
 				    </td>
                             </tr>
                         {% endfor %}
