@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+    <head>
+        <link href="../../bootstrap.min.css" rel="stylesheet">
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="page header">
+	        <h2 id="cid">Container: {{ cid }}</h2>
+                <p id="status">{{ status }}</p>
+            </div>
+            <div class="row">
+	        <div class="col-md-6">
+                    <h4>StdOut:</h4>
+		    <pre class="pre-scrollable" id="stdout"> {{ out }} </pre>
+	        </div>
+		<div class="col-md-6">
+                    <h4>StdErr:</h4>
+		    <pre class="pre-scrollable" id="stderr">{{ err }} </pre>
+	        </div>
+            </div>
+        </div>
+        <script>
+            (function() {
+              var url = '{{ url }}'
+              var checkContainer = function(url) {
+                 var xmlhttp = new XMLHttpRequest();
+
+                 // Set the state change handler.
+                 xmlhttp.onreadystatechange = function() {
+                   if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+                     var data = JSON.parse(xmlhttp.responseText);
+                     document.getElementById('status').innerHTML = data.status;
+                     document.getElementById('stdout').innerHTML = data.out;
+                     document.getElementById('stderr').innerHTML = data.err;
+                     document.getElementById('cid').innerHTML = 'Container: ' + data.cid;
+                   }
+                 };
+
+                 xmlhttp.open('POST', url, true);
+                 xmlhttp.send();
+              }
+
+              // Start the Interval
+              setInterval(function() {
+                checkContainer(url);
+              }, 5000);
+
+            })();
+        </script>
+    </body>
+</html>

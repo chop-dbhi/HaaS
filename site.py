@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import json
 from uuid import uuid4
 from datetime import datetime
 from docker import Client
@@ -67,10 +68,7 @@ def upload():
 
     url = launch_container(uuid)
 
-    if url:
-        return redirect(url)
-
-    return 'There was a problem running the container', 500
+    return redirect('/containers/' +  uuid + '/status')
 
 
 @app.route('/containers')
@@ -125,7 +123,7 @@ def list_containers():
 
     return render_template('list.html', containers=items)
 
-
+# Functions to start/stop/remove a container according to its ID
 @app.route('/containers/<cid>/remove', methods=['POST'])
 def remove(cid):
     folder_name = (container_info(cid))['Name']
@@ -275,11 +273,53 @@ def container_ready(cid, timeout=DEFAULT_TIMEOUT):
 
     return False
 
-@app.route('/containers/<cid>/logs')
-def logs(cid):
+# Use status detection from list_containers() above.
+@app.route('/check_container/<cid>', methods=['POST'])
+def check_container(cid):
+    status = 'Running'
+
+    if cid:
+        port = container_port(cid)
+        info = container_info(cid)
+
+        if info:
+            if info['State']['Running']:
+                # Ignore nanosecond resolution.
+                created = info['Created'].split('.')[0]
+
+                if container_ready(cid, timeout=1):
+                    url = container_redirect(port)
+                    status = 'Running'
+                    created_time = datetime.strptime(created,
+                                                     '%Y-%m-%dT%H:%M:%S')
+                    uptime = datetime.now() - created_time
+                else:
+                    status = 'Building'
+            else:
+                status = 'Not Running'
+        else:
+            status = 'Missing'
+
     stdout = docker.logs(container=cid, stdout=True, stderr=False)
     stderr = docker.logs(container=cid, stderr=True, stdout=False)
-    return render_template('logs.html', cid=cid, out=stdout, err=stderr)
+
+    # Return a json object to be recieved by javascript on the status page.
+    return json.dumps({
+        'status': status,
+        'out': stdout,
+        'err': stderr,
+        'cid': cid
+    })
+
+# This method displays the page, but the content is accessed and
+# Updated using the function above.
+@app.route('/containers/<uuid>/status', methods=['GET'])
+def container_status(uuid):
+    cid = container_id(uuid)
+    url = '/check_container/' + cid[:16]
+    stdout = docker.logs(container=cid, stdout=True, stderr=False)
+    stderr = docker.logs(container=cid, stderr=True, stdout=False)
+    return render_template('status.html', cid=cid, url=url, out=stdout, err=stderr)
 
 if __name__ == '__main__':
     debug = bool(os.environ.get('DEBUG'))
