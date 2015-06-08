@@ -315,8 +315,8 @@ def check_container(cid):
 # Updated using the function above.
 @app.route('/containers/<uuid>/status', methods=['GET'])
 def container_status(uuid):
-    cid = container_id(uuid)
-    url = '/check_container/' + cid[:16]
+    cid = container_id(uuid)[:16]
+    url = '/check_container/' + cid
     stdout = docker.logs(container=cid, stdout=True, stderr=False)
     stderr = docker.logs(container=cid, stderr=True, stdout=False)
     return render_template('status.html', cid=cid, url=url, out=stdout, err=stderr)

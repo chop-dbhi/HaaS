@@ -20,7 +20,6 @@
                             <th>Uptime</th>
 			    <th>Stop/Start</th>
 			    <th>Remove</th>
-			    <th>Logs</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -52,21 +51,16 @@
 				        </form>
 				    </td>
 				{% endif %}
-				    <td>
-			                <form action="containers/{{ c.cid }}/remove"
-					      method="POST">
-			                    <a onclick="this.parentNode.submit()"
-				               href="#">
-				                Remove
-				            </a>
-				        </form>
-				    </td>
-				    <td>
-				        <a href="containers/{{ c.cid }}/logs">
-				            Logs
+				<td>
+			            <form action="containers/{{ c.cid }}/remove"
+				          method="POST">
+			                <a onclick="this.parentNode.submit()"
+				           href="#">
+				            Remove
 				        </a>
-				    </td>
-                            </tr>
+				    </form>
+				</td>
+		            </tr>
                         {% endfor %}
                     </tbody>
                 </table>
