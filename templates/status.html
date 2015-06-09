@@ -7,18 +7,7 @@
     <body>
         <div class="container">
             <div class="page header">
-	        <h2 id="cid">Container: {{ cid }}</h2>
-                <p id="status">{{ status }}</p>
-            </div>
-            <div class="row">
-	        <div class="col-md-6">
-                    <h4>StdOut:</h4>
-		    <pre class="pre-scrollable" id="stdout"> {{ out }} </pre>
-	        </div>
-		<div class="col-md-6">
-                    <h4>StdErr:</h4>
-		    <pre class="pre-scrollable" id="stderr">{{ err }} </pre>
-	        </div>
+                <h4 id="status">Status: Building...</h4>
             </div>
         </div>
         <script>
@@ -31,10 +20,11 @@
                  xmlhttp.onreadystatechange = function() {
                    if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
                      var data = JSON.parse(xmlhttp.responseText);
-                     document.getElementById('status').innerHTML = data.status;
-                     document.getElementById('stdout').innerHTML = data.out;
-                     document.getElementById('stderr').innerHTML = data.err;
-                     document.getElementById('cid').innerHTML = 'Container: ' + data.cid;
+                     document.getElementById('status').innerHTML = 'Status: '
+                         + data.status;
+                     if (data.status === 'Running') {
+                       window.location='/containers/' + '{{ uuid }}';
+                     }
                    }
                  };
 
@@ -46,7 +36,6 @@
               setInterval(function() {
                 checkContainer(url);
               }, 5000);
-
             })();
         </script>
     </body>
