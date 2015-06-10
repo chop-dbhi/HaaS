@@ -6,37 +6,44 @@
 
     <body>
         <div class="container">
-            <div class="page header">
-                <h4 id="status">Status: Building...</h4>
-            </div>
+            {% if notfound %}
+                <div class="page header">
+                    <h4>The container does not exist.</h4>
+                </div>
+            {% else %}
+                <div class="page header">
+                    <h4 id="status">Status: Building...</h4>
+                </div>
+            {% endif %}
         </div>
-        <script>
-            (function() {
-              var url = '{{ url }}'
-              var checkContainer = function(url) {
-                 var xmlhttp = new XMLHttpRequest();
+        {% if not notfound %}
+            <script>
+                (function() {
+                  var url = '{{ url }}'
+                  var checkContainer = function(url) {
+                     var xmlhttp = new XMLHttpRequest();
 
-                 // Set the state change handler.
-                 xmlhttp.onreadystatechange = function() {
-                   if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
-                     var data = JSON.parse(xmlhttp.responseText);
-                     document.getElementById('status').innerHTML = 'Status: '
-                         + data.status;
-                     if (data.status === 'Running') {
-                       window.location='/containers/' + '{{ uuid }}';
-                     }
-                   }
-                 };
+                     // Set the state change handler.
+                     xmlhttp.onreadystatechange = function() {
+                       if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+                         var data = JSON.parse(xmlhttp.responseText);
+                         document.getElementById('status').innerHTML = 'Status: ' + data.status;
+                         if (data.status === 'Running') {
+                           window.location = '/containers/' + '{{ uuid }}';
+                         }
+                       }
+                     };
 
-                 xmlhttp.open('POST', url, true);
-                 xmlhttp.send();
-              }
+                     xmlhttp.open('POST', url, true);
+                     xmlhttp.send();
+                  }
 
-              // Start the Interval
-              setInterval(function() {
-                checkContainer(url);
-              }, 5000);
-            })();
-        </script>
+                  // Start the Interval
+                  setInterval(function() {
+                    checkContainer(url);
+                  }, 5000);
+                })();
+            </script>
+        {% endif %}
     </body>
 </html>

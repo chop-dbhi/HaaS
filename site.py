@@ -43,7 +43,7 @@ def serve_static(path):
 
 
 # Retrieve the files uploaded by the user, and if they are valid,
-# store them in a subfolder in the
+# store them in a subfolder in the containers directory
 @app.route('/', methods=['GET', 'POST'])
 def upload():
     if request.method == 'GET':
@@ -320,11 +320,17 @@ def check_container(cid):
 # Updated using the function above.
 @app.route('/containers/<uuid>/status', methods=['GET'])
 def container_status(uuid):
+    folder = os.path.join(CONTAINER_DIR, uuid)
+
+    if not os.path.exists(folder):
+        return render_template('status.html', notfound=True)
+
     url = launch_container(uuid)
     cid = container_id(uuid)[:16]
     url = '/check_container/' + cid
     stdout = docker.logs(container=cid, stdout=True, stderr=False)
     stderr = docker.logs(container=cid, stderr=True, stdout=False)
+
     return render_template('status.html', uuid=uuid, cid=cid,
         url=url, out=stdout, err=stderr)
 
