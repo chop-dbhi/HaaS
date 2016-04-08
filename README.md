@@ -19,15 +19,15 @@ docker pull dbhi/redcap-harvest
 
 This service runs in a container itself and requires access to the Docker binary and socket on the host so Harvest containers built and run. In addition, the Docker hostname or IP address must be passed so a proper redirect URL can be constructed.
 
-OS X users are assumed to be using [boot2docker](https://docs.docker.com/installation/mac/) which require slightly different arguments.
+OS X users are assumed to be using [docker-machine](https://docs.docker.com/machine/) which require slightly different arguments.
 
 Set the `DOCKER_HOSTNAME` (or set it manually).
 
 ```bash
-if hash boot2docker 2>/dev/null; then
-    DOCKER_HOSTNAME=$(boot2docker ip)
+if hash docker-machine 2>/dev/null; then
+    DOCKER_HOSTNAME=$(docker-machine ip)
 else
-    DOCKER_HOSTNAME=$($HOSTNAME | ip route|awk '/default/ { print  $3}')
+    DOCKER_HOSTNAME=$($HOSTNAME | ip route | awk '/default/ { print  $3}')
 fi
 ```
 

@@ -1,6 +1,6 @@
 FROM python:2-onbuild
 
-MAINTAINER James Swanick "swanijam@gmail.com"
+MAINTAINER Byron Ruth "b@devel.io"
 
 ADD site.py site.py
 
